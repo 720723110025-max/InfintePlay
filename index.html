@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InfinitePlay - Free All-in-One Games</title>
+    <!-- Tailwind CSS for high-quality responsive layouts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons for clean, modern symbols -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #8b5cf6;
+            border-radius: 4px;
+        }
+        /* Custom responsive 3D click action */
+        .retro-click {
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+            box-shadow: 0 4px 0 0 #4c1d95;
+        }
+        .retro-click:active {
+            transform: translateY(4px);
+            box-shadow: 0 0px 0 0 #4c1d95;
+        }
+        
+        /* Memory Match Flipped Card Animations - Robust 3D depth and layer support */
+        .card-container {
+            perspective: 1000px;
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-bottom: 100%; /* Bulletproof aspect-square layout prevents collapsing height */
+        }
+        .card-inner {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        .card-flipped {
+            transform: rotateY(180deg);
+        }
+        .card-front, .card-back {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card-front {
+            background-color: #020617; /* slate-950 */
+            border: 1px solid #1e293b; /* slate-800 */
+            color: #64748b; /* slate-500 */
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .card-back {
+            transform: rotateY(180deg);
+            background-color: rgba(139, 92, 246, 0.15); /* purple-500 transparent */
+            border: 2px solid #8b5cf6; /* purple-500 */
+            font-size: 2rem;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-purple-500 selection:text-white">
+
+    <!-- Header bar -->
+    <header id="main-header" class="hidden border-b border-slate-800 bg-slate-950/90 backdrop-blur sticky top-0 z-50 px-4 py-3">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-2 cursor-pointer" onclick="CoreEngine.showDashboard()">
+                <div class="p-2 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg text-white shadow-md shadow-purple-500/20">
+                    <i data-lucide="gamepad-2" class="w-6 h-6"></i>
+                </div>
+                <span class="text-lg font-black tracking-wider bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent">INFINITEPLAY</span>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="text-right hidden sm:block">
+                    <div class="font-bold text-slate-200 text-sm" id="header-username">Player</div>
+                    <div class="text-xs text-purple-400 font-semibold flex items-center gap-1 justify-end">
+                        <i data-lucide="sparkles" class="w-3 h-3 text-purple-400"></i> <span id="header-xp">0</span> XP
+                    </div>
+                </div>
+                <div id="header-avatar" class="w-9 h-9 rounded-full border border-purple-500 bg-slate-800 flex items-center justify-center text-lg shadow-sm cursor-pointer" onclick="CoreEngine.showDashboard()">
+                    👾
+                </div>
+                <button onclick="CoreEngine.logout()" class="p-2 text-slate-400 hover:text-red-400 rounded-lg transition-colors" title="Logout Profile">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main class="flex-grow flex items-center justify-center p-4">
+
+        <!-- 1. USER LOGIN / ENTRY PORTAL -->
+        <section id="screen-login" class="w-full max-w-md bg-slate-950 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+            <div class="absolute -top-12 -right-12 w-44 h-44 bg-purple-600/10 rounded-full blur-3xl"></div>
+            <div class="absolute -bottom-12 -left-12 w-44 h-44 bg-indigo-600/10 rounded-full blur-3xl"></div>
+            
+            <div class="text-center mb-6 relative">
+                <div class="inline-flex p-3 bg-purple-500/10 text-purple-400 rounded-2xl mb-3 ring-4 ring-purple-500/5">
+                    <i data-lucide="sparkles" class="w-8 h-8"></i>
+                </div>
+                <h1 class="text-2xl font-black text-white tracking-tight">Play InfinitePlay Games</h1>
+                <p class="text-slate-400 text-xs mt-1">Unlock instant matches with permanent cross-device cloud saving.</p>
+            </div>
+
+            <div class="space-y-5 relative">
+                <!-- Avatar Chooser -->
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Select Your Hero Piece</label>
+                    <div class="grid grid-cols-5 gap-2" id="avatar-grid">
+                        <button onclick="CoreEngine.selectAvatar('👾')" class="avatar-option text-xl p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-purple-500 transition-all">👾</button>
+                        <button onclick="CoreEngine.selectAvatar('🚀')" class="avatar-option text-xl p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-purple-500 transition-all">🚀</button>
+                        <button onclick="CoreEngine.selectAvatar('🐱')" class="avatar-option text-xl p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-purple-500 transition-all">🐱</button>
+                        <button onclick="CoreEngine.selectAvatar('🦖')" class="avatar-option text-xl p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-purple-500 transition-all">🦖</button>
+                        <button onclick="CoreEngine.selectAvatar('🦊')" class="avatar-option text-xl p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-purple-500 transition-all">🦊</button>
+                    </div>
+                </div>
+
+                <!-- Username Entry -->
+                <div>
+                    <label for="username-input" class="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Nickname (Compulsory)</label>
+                    <input type="text" id="username-input" placeholder="e.g. PixelWarrior" maxlength="15" 
+                           class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-slate-500 text-sm transition-all">
+                </div>
+
+                <!-- Launch Button -->
+                <button onclick="CoreEngine.login()" class="retro-click w-full py-4 px-6 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl flex justify-center items-center gap-2">
+                    Enter Arcade <i data-lucide="play" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- 2. MAIN DASHBOARD HUB -->
+        <section id="screen-dashboard" class="hidden w-full max-w-6xl">
+            <!-- Profile Info Banner -->
+            <div class="bg-gradient-to-r from-purple-950/30 via-slate-900 to-slate-900 border border-purple-900/40 rounded-2xl p-5 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-lg">
+                <div class="flex items-center gap-3">
+                    <div id="dash-avatar" class="w-14 h-14 bg-slate-800 rounded-xl flex items-center justify-center text-3xl border border-purple-500 shadow-md">👾</div>
+                    <div>
+                        <h2 class="text-xl font-bold text-white flex items-center gap-1.5">Welcome, <span id="dash-username" class="text-purple-400">Player</span>!</h2>
+                        <p class="text-slate-400 text-xs">Accumulate XP metrics. Your progress is synced automatically.</p>
+                        <div id="user-id-display" class="text-[9px] text-slate-500 font-mono mt-1">Connecting...</div>
+                    </div>
+                </div>
+                <div class="flex gap-3 w-full sm:w-auto">
+                    <div class="bg-slate-950 border border-slate-800 px-4 py-2 rounded-xl flex-grow sm:flex-grow-0 text-center">
+                        <div class="text-[9px] text-slate-500 uppercase tracking-wider font-bold">Games Played</div>
+                        <div class="text-lg font-black text-purple-400" id="stat-played">0</div>
+                    </div>
+                    <div class="bg-slate-950 border border-slate-800 px-4 py-2 rounded-xl flex-grow sm:flex-grow-0 text-center">
+                        <div class="text-[9px] text-slate-500 uppercase tracking-wider font-bold">Total XP</div>
+                        <div class="text-lg font-black text-amber-400 flex items-center justify-center gap-1">
+                            <i data-lucide="zap" class="w-4 h-4 fill-amber-400 text-amber-400"></i> <span id="stat-xp">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Games Grid Selection -->
+            <h3 class="text-xs font-bold tracking-widest uppercase text-slate-400 mb-4 flex items-center gap-1.5">
+                <i data-lucide="layout-grid" class="w-4 h-4 text-purple-500"></i> Playable Categories
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Card A: Memory Match -->
+                <div onclick="CoreEngine.launchGame('memory')" class="group bg-slate-950 border border-slate-800 hover:border-purple-500 rounded-2xl p-5 cursor-pointer hover:-translate-y-1 transition-all shadow-md flex flex-col justify-between">
+                    <div>
+                        <div class="w-10 h-10 bg-purple-500/10 text-purple-400 rounded-xl flex items-center justify-center mb-3 group-hover:bg-purple-600 group-hover:text-white transition-all">
+                            <i data-lucide="brain" class="w-5 h-5"></i>
+                        </div>
+                        <h4 class="text-lg font-bold text-white mb-1.5">Memory Match</h4>
+                        <p class="text-slate-400 text-xs">Build recall and visual intelligence. Supports custom Emojis and geometric Shapes themes!</p>
+                    </div>
+                    <div class="mt-4 flex justify-between items-center text-[10px] text-slate-500 pt-3 border-t border-slate-900">
+                        <span>Puzzles</span>
+                        <span class="text-purple-400 group-hover:underline flex items-center gap-1">Launch Board <i data-lucide="arrow-right" class="w-3 h-3"></i></span>
+                    </div>
+                </div>
+
+                <!-- Card B: Math Quest -->
+                <div onclick="CoreEngine.launchGame('math')" class="group bg-slate-950 border border-slate-800 hover:border-emerald-500 rounded-2xl p-5 cursor-pointer hover:-translate-y-1 transition-all shadow-md flex flex-col justify-between">
+                    <div>
+                        <div class="w-10 h-10 bg-emerald-500/10 text-emerald-400 rounded-xl flex items-center justify-center mb-3 group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                            <i data-lucide="binary" class="w-5 h-5"></i>
+                        </div>
+                        <h4 class="text-lg font-bold text-white mb-1.5">Math Quest</h4>
+                        <p class="text-slate-400 text-xs">Solve mental operations fast. Multiple choices with adaptive countdown timers and penalties.</p>
+                    </div>
+                    <div class="mt-4 flex justify-between items-center text-[10px] text-slate-500 pt-3 border-t border-slate-900">
+                        <span>Educational</span>
+                        <span class="text-emerald-400 group-hover:underline flex items-center gap-1">Launch Board <i data-lucide="arrow-right" class="w-3 h-3"></i></span>
+                    </div>
+                </div>
+
+                <!-- Card C: Art Studio -->
+                <div onclick="CoreEngine.launchGame('draw')" class="group bg-slate-950 border border-slate-800 hover:border-pink-500 rounded-2xl p-5 cursor-pointer hover:-translate-y-1 transition-all shadow-md flex flex-col justify-between">
+                    <div>
+                        <div class="w-10 h-10 bg-pink-500/10 text-pink-400 rounded-xl flex items-center justify-center mb-3 group-hover:bg-pink-600 group-hover:text-white transition-all">
+                            <i data-lucide="palette" class="w-5 h-5"></i>
+                        </div>
+                        <h4 class="text-lg font-bold text-white mb-1.5">Art Studio</h4>
+                        <p class="text-slate-400 text-xs">Doodle freely or follow drawing guidelines. Custom palettes, brush sizing, and downloads.</p>
+                    </div>
+                    <div class="mt-4 flex justify-between items-center text-[10px] text-slate-500 pt-3 border-t border-slate-900">
+                        <span>Creative</span>
+                        <span class="text-pink-400 group-hover:underline flex items-center gap-1">Launch Board <i data-lucide="arrow-right" class="w-3 h-3"></i></span>
+                    </div>
+                </div>
+
+                <!-- Card D: Tic-Tac-Toe -->
+                <div onclick="CoreEngine.launchGame('ttt')" class="group bg-slate-950 border border-slate-800 hover:border-blue-500 rounded-2xl p-5 cursor-pointer hover:-translate-y-1 transition-all shadow-md flex flex-col justify-between">
+                    <div>
+                        <div class="w-10 h-10 bg-blue-500/10 text-blue-400 rounded-xl flex items-center justify-center mb-3 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                            <i data-lucide="grid-3x3" class="w-5 h-5"></i>
+                        </div>
+                        <h4 class="text-lg font-bold text-white mb-1.5">Tic-Tac-Toe</h4>
+                        <p class="text-slate-400 text-xs">The quintessential puzzle game. Challenge a local friend or a highly responsive computer bot.</p>
+                    </div>
+                    <div class="mt-4 flex justify-between items-center text-[10px] text-slate-500 pt-3 border-t border-slate-900">
+                        <span>Classics</span>
+                        <span class="text-blue-400 group-hover:underline flex items-center gap-1">Launch Board <i data-lucide="arrow-right" class="w-3 h-3"></i></span>
+                    </div>
+                </div>
+
+                <!-- Card E: Retro Snake -->
+                <div onclick="CoreEngine.launchGame('snake')" class="group bg-slate-950 border border-slate-800 hover:border-amber-500 rounded-2xl p-5 cursor-pointer hover:-translate-y-1 transition-all shadow-md flex flex-col justify-between">
+                    <div>
+                        <div class="w-10 h-10 bg-amber-500/10 text-amber-400 rounded-xl flex items-center justify-center mb-3 group-hover:bg-amber-600 group-hover:text-white transition-all">
+                            <i data-lucide="swords" class="w-5 h-5"></i>
+                        </div>
+                        <h4 class="text-lg font-bold text-white mb-1.5">Retro Snake</h4>
+                        <p class="text-slate-400 text-xs">Collect appetizing apples while avoiding self-collision. Complete with custom on-screen D-Pad.</p>
+                    </div>
+                    <div class="mt-4 flex justify-between items-center text-[10px] text-slate-500 pt-3 border-t border-slate-900">
+                        <span>Arcade</span>
+                        <span class="text-amber-400 group-hover:underline flex items-center gap-1">Launch Board <i data-lucide="arrow-right" class="w-3 h-3"></i></span>
+                    </div>
+                </div>
+
+                <!-- Card F: Word Builder -->
+                <div onclick="CoreEngine.launchGame('word')" class="group bg-slate-950 border border-slate-800 hover:border-red-500 rounded-2xl p-5 cursor-pointer hover:-translate-y-1 transition-all shadow-md flex flex-col justify-between">
+                    <div>
+                        <div class="w-10 h-10 bg-red-500/10 text-red-400 rounded-xl flex items-center justify-center mb-3 group-hover:bg-red-600 group-hover:text-white transition-all">
+                            <i data-lucide="type" class="w-5 h-5"></i>
+                        </div>
+                        <h4 class="text-lg font-bold text-white mb-1.5">Word Builder</h4>
+                        <p class="text-slate-400 text-xs">Construct vocabularies under multiple fun themes using virtual interactive keypads.</p>
+                    </div>
+                    <div class="mt-4 flex justify-between items-center text-[10px] text-slate-500 pt-3 border-t border-slate-900">
+                        <span>Vocabulary</span>
+                        <span class="text-red-400 group-hover:underline flex items-center gap-1">Launch Board <i data-lucide="arrow-right" class="w-3 h-3"></i></span>
+                    </div>
+                </div>
+
+                <!-- Card G: Pixel Flight (Flappy Bird) -->
+                <div onclick="CoreEngine.launchGame('flappy')" class="group bg-slate-950 border border-slate-800 hover:border-sky-500 rounded-2xl p-5 cursor-pointer hover:-translate-y-1 transition-all shadow-md flex flex-col justify-between">
+                    <div>
+                        <div class="w-10 h-10 bg-sky-500/10 text-sky-400 rounded-xl flex items-center justify-center mb-3 group-hover:bg-sky-600 group-hover:text-white transition-all">
+                            <i data-lucide="plane" class="w-5 h-5"></i>
+                        </div>
+                        <h4 class="text-lg font-bold text-white mb-1.5">Pixel Flight</h4>
+                        <p class="text-slate-400 text-xs">Fly your character avatar through obstacle pillars. Simple taps/spacebar to jump.</p>
+                    </div>
+                    <div class="mt-4 flex justify-between items-center text-[10px] text-slate-500 pt-3 border-t border-slate-900">
+                        <span>Arcade Action</span>
+                        <span class="text-sky-400 group-hover:underline flex items-center gap-1">Launch Board <i data-lucide="arrow-right" class="w-3 h-3"></i></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- A. ACTIVE GAME SCREEN: MEMORY MATCH -->
+        <section id="screen-game-memory" class="hidden w-full max-w-2xl bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <button onclick="CoreEngine.showDashboard()" class="text-slate-400 hover:text-white text-xs flex items-center gap-1"><i data-lucide="chevron-left" class="w-4 h-4"></i> Leave Game</button>
+                <div class="text-base font-black text-purple-400 flex items-center gap-1.5"><i data-lucide="brain" class="w-5 h-5"></i> Memory Match</div>
+                <div class="w-10"></div>
+            </div>
+
+            <!-- Dashboard Options -->
+            <div class="flex flex-wrap gap-2 justify-between items-center bg-slate-900/50 p-3 rounded-xl mb-4 text-xs">
+                <div class="flex gap-1.5">
+                    <button onclick="MemoryMatchGame.setMemoryTheme('emoji')" id="mtheme-emoji" class="px-2.5 py-1 rounded bg-purple-600 text-white font-bold">Emojis 🦊</button>
+                    <button onclick="MemoryMatchGame.setMemoryTheme('shapes')" id="mtheme-shapes" class="px-2.5 py-1 rounded bg-slate-800 text-slate-400 hover:bg-slate-700">Shapes 🔺</button>
+                </div>
+                <div class="font-semibold flex gap-3 text-slate-400">
+                    <span>Moves: <span id="memory-moves" class="text-white font-bold">0</span></span>
+                    <span>Matched: <span id="memory-pairs" class="text-white font-bold">0/8</span></span>
+                </div>
+            </div>
+
+            <!-- Dynamic grid container -->
+            <div id="memory-board" class="grid grid-cols-4 gap-3 max-w-[340px] mx-auto mb-4"></div>
+
+            <div class="flex justify-center">
+                <button onclick="MemoryMatchGame.initMemory()" class="retro-click px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg flex items-center gap-1.5">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Clear Board
+                </button>
+            </div>
+        </section>
+
+        <!-- B. ACTIVE GAME SCREEN: MATH QUEST -->
+        <section id="screen-game-math" class="hidden w-full max-w-2xl bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <button onclick="CoreEngine.showDashboard()" class="text-slate-400 hover:text-white text-xs flex items-center gap-1"><i data-lucide="chevron-left" class="w-4 h-4"></i> Leave Game</button>
+                <div class="text-base font-black text-emerald-400 flex items-center gap-1.5"><i data-lucide="binary" class="w-5 h-5"></i> Math Quest</div>
+                <div class="w-10"></div>
+            </div>
+
+            <!-- Parameters -->
+            <div class="grid grid-cols-3 gap-2 bg-slate-900/50 p-3 rounded-xl mb-4 text-center text-xs">
+                <div>
+                    <div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Score</div>
+                    <div class="text-sm font-bold text-emerald-400" id="math-score">0</div>
+                </div>
+                <div>
+                    <div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Countdown</div>
+                    <div class="text-sm font-bold text-red-400" id="math-timer">30s</div>
+                </div>
+                <div>
+                    <div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Difficulty</div>
+                    <select id="math-diff" onchange="MathQuestGame.initMath()" class="bg-slate-950 border border-slate-700 text-slate-300 rounded px-1.5 py-0.5 text-xs font-bold focus:outline-none mb-1 w-full text-center">
+                        <option value="easy">Easy (Addition)</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="hard">Hard (Advanced)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="math-play-zone" class="space-y-4">
+                <!-- Clock progress -->
+                <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                    <div id="math-progress" class="bg-emerald-500 h-full w-full transition-all duration-100"></div>
+                </div>
+
+                <!-- Large Equation Panel -->
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 text-center text-3xl font-extrabold text-white" id="math-equation">
+                    -- + -- = ?
+                </div>
+
+                <!-- Answer Grid -->
+                <div class="grid grid-cols-2 gap-3" id="math-options-container"></div>
+            </div>
+
+            <div id="math-game-over-zone" class="hidden text-center py-6 space-y-3">
+                <div class="inline-flex p-3 bg-emerald-500/10 text-emerald-400 rounded-full">
+                    <i data-lucide="award" class="w-10 h-10"></i>
+                </div>
+                <h4 class="text-xl font-bold text-white">Timer Concluded!</h4>
+                <p class="text-slate-400 text-xs">You scored <span id="math-final-score" class="font-bold text-emerald-400">0</span> points in this run.</p>
+                <button onclick="MathQuestGame.initMath()" class="retro-click px-5 py-2 bg-emerald-600 hover:bg-emerald-500 font-bold rounded-lg text-xs inline-flex items-center gap-1.5">
+                    Start Anew
+                </button>
+            </div>
+        </section>
+
+        <!-- C. ACTIVE GAME SCREEN: ART STUDIO -->
+        <section id="screen-game-draw" class="hidden w-full max-w-4xl bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <button onclick="CoreEngine.showDashboard()" class="text-slate-400 hover:text-white text-xs flex items-center gap-1"><i data-lucide="chevron-left" class="w-4 h-4"></i> Leave Game</button>
+                <div class="text-base font-black text-pink-400 flex items-center gap-1.5"><i data-lucide="palette" class="w-5 h-5"></i> Art Studio</div>
+                <div class="w-10"></div>
+            </div>
+
+            <div class="flex flex-col lg:flex-row gap-4">
+                <!-- Paint Sidebar Toolkit -->
+                <div class="w-full lg:w-56 bg-slate-900 border border-slate-800 p-3 rounded-xl flex flex-col gap-4 text-xs">
+                    <div>
+                        <label class="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Color Tool</label>
+                        <div class="flex items-center gap-2">
+                            <input type="color" id="art-color-picker" value="#ec4899" class="w-8 h-8 rounded cursor-pointer bg-transparent border-0">
+                            <span class="text-slate-400 font-mono text-[10px]" id="art-color-text">#ec4899</span>
+                        </div>
+                    </div>
+
+                    <!-- Color Swatches -->
+                    <div>
+                        <label class="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Preset Palette</label>
+                        <div class="grid grid-cols-5 gap-1.5">
+                            <button onclick="ArtStudioGame.setBrushColor('#ef4444')" class="w-5 h-5 rounded bg-red-500"></button>
+                            <button onclick="ArtStudioGame.setBrushColor('#f97316')" class="w-5 h-5 rounded bg-orange-500"></button>
+                            <button onclick="ArtStudioGame.setBrushColor('#eab308')" class="w-5 h-5 rounded bg-yellow-500"></button>
+                            <button onclick="ArtStudioGame.setBrushColor('#22c55e')" class="w-5 h-5 rounded bg-emerald-500"></button>
+                            <button onclick="ArtStudioGame.setBrushColor('#3b82f6')" class="w-5 h-5 rounded bg-blue-500"></button>
+                            <button onclick="ArtStudioGame.setBrushColor('#a855f7')" class="w-5 h-5 rounded bg-purple-500"></button>
+                            <button onclick="ArtStudioGame.setBrushColor('#ec4899')" class="w-5 h-5 rounded bg-pink-500"></button>
+                            <button onclick="ArtStudioGame.setBrushColor('#ffffff')" class="w-5 h-5 rounded bg-white border border-slate-700"></button>
+                            <button onclick="ArtStudioGame.setBrushColor('#000000')" class="w-5 h-5 rounded bg-black border border-slate-700"></button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Thickness</label>
+                            <span class="text-pink-400 font-bold" id="brush-size-val">5 px</span>
+                        </div>
+                        <input type="range" id="art-brush-size" min="2" max="30" value="5" class="w-full accent-pink-500">
+                    </div>
+
+                    <!-- Outline templates -->
+                    <div>
+                        <label class="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Background Guides</label>
+                        <select id="art-template-select" onchange="ArtStudioGame.changeColoringTemplate()" class="w-full bg-slate-950 border border-slate-700 text-slate-300 rounded p-1.5 text-xs outline-none focus:ring-1 focus:ring-pink-500">
+                            <option value="blank">Blank Drawing Canvas</option>
+                            <option value="cat">Happy Kitten 🐱</option>
+                            <option value="house">Cozy House 🏡</option>
+                            <option value="star">Shooting Star 🌟</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-1.5 mt-auto">
+                        <button onclick="ArtStudioGame.clearArtCanvas()" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded text-xs flex items-center justify-center gap-1">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Clean Canvas
+                        </button>
+                        <button onclick="ArtStudioGame.downloadCanvas()" class="w-full py-1.5 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded text-xs flex items-center justify-center gap-1">
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i> Export PNG
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Painting Area -->
+                <div class="flex-grow flex flex-col items-center justify-center bg-white rounded-xl p-1 shadow-inner border border-slate-800">
+                    <canvas id="art-canvas" width="500" height="500" class="max-w-full bg-white block select-none touch-none rounded"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- D. ACTIVE GAME SCREEN: TIC-TAC-TOE -->
+        <section id="screen-game-ttt" class="hidden w-full max-w-2xl bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <button onclick="CoreEngine.showDashboard()" class="text-slate-400 hover:text-white text-xs flex items-center gap-1"><i data-lucide="chevron-left" class="w-4 h-4"></i> Leave Game</button>
+                <div class="text-base font-black text-blue-400 flex items-center gap-1.5"><i data-lucide="grid-3x3" class="w-5 h-5"></i> Tic-Tac-Toe</div>
+                <div class="w-10"></div>
+            </div>
+
+            <!-- Parameters (AI / Local) -->
+            <div class="flex flex-wrap gap-2 justify-between items-center bg-slate-900/50 p-3 rounded-xl mb-4 text-xs">
+                <div class="flex gap-1.5">
+                    <button onclick="TicTacToeGame.setTTTMode('ai')" id="tttmode-ai" class="px-2.5 py-1 rounded bg-blue-600 text-white font-bold">vs Computer 🤖</button>
+                    <button onclick="TicTacToeGame.setTTTMode('local')" id="tttmode-local" class="px-2.5 py-1 rounded bg-slate-800 text-slate-400 hover:bg-slate-700">vs Friend 👥</button>
+                </div>
+                <div id="ttt-status" class="font-bold text-blue-400 text-xs">Player X's turn</div>
+            </div>
+
+            <!-- Grid -->
+            <div class="grid grid-cols-3 gap-2 max-w-[280px] mx-auto aspect-square mb-4" id="ttt-board"></div>
+
+            <div class="flex justify-center">
+                <button onclick="TicTacToeGame.initTTT()" class="retro-click px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg flex items-center gap-1.5">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Clear Grid
+                </button>
+            </div>
+        </section>
+
+        <!-- E. ACTIVE GAME SCREEN: RETRO SNAKE -->
+        <section id="screen-game-snake" class="hidden w-full max-w-2xl bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-3">
+                <button onclick="CoreEngine.showDashboard()" class="text-slate-400 hover:text-white text-xs flex items-center gap-1"><i data-lucide="chevron-left" class="w-4 h-4"></i> Leave Game</button>
+                <div class="text-base font-black text-amber-500 flex items-center gap-1.5"><i data-lucide="swords" class="w-5 h-5"></i> Retro Snake</div>
+                <div class="w-10"></div>
+            </div>
+
+            <!-- Display parameters -->
+            <div class="grid grid-cols-3 gap-1.5 bg-slate-900/50 p-3 rounded-xl mb-3 text-center text-xs">
+                <div>
+                    <div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Score</div>
+                    <div class="text-sm font-bold text-amber-500" id="snake-score">0</div>
+                </div>
+                <div>
+                    <div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">High Score</div>
+                    <div class="text-sm font-bold text-amber-400" id="snake-highscore">0</div>
+                </div>
+                <div>
+                    <div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Velocity</div>
+                    <select id="snake-speed" onchange="RetroSnakeGame.resetSnakeSpeed()" class="bg-slate-950 border border-slate-700 text-slate-300 rounded px-1 text-[11px] font-bold focus:outline-none text-center">
+                        <option value="150">Cozy / Easy</option>
+                        <option value="100" selected>Normal Mode</option>
+                        <option value="60">Sonic Speed</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex flex-col items-center">
+                <div class="relative bg-slate-900 border border-slate-800 rounded-xl overflow-hidden p-0.5">
+                    <canvas id="snake-canvas" width="400" height="400" class="max-w-full block bg-slate-950 rounded-lg"></canvas>
+                    
+                    <!-- Overlay game over dialog -->
+                    <div id="snake-gameover-overlay" class="hidden absolute inset-0 bg-slate-950/95 backdrop-blur-sm flex flex-col justify-center items-center text-center p-6">
+                        <div class="inline-flex p-3 bg-amber-500/10 text-amber-500 rounded-full mb-3">
+                            <i data-lucide="skull" class="w-10 h-10"></i>
+                        </div>
+                        <h4 class="text-xl font-bold text-white mb-1">Crash! Game Over</h4>
+                        <p class="text-slate-400 text-xs mb-3">Total Apples Eaten: <span id="snake-final-apples" class="font-bold text-amber-400">0</span></p>
+                        <button onclick="RetroSnakeGame.initSnake()" class="retro-click px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-xs">
+                            Restart Arcade Engine
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Touch Direction Keys -->
+                <div class="grid grid-cols-3 gap-1.5 w-40 max-w-full mt-4" id="snake-dpad">
+                    <div></div>
+                    <button onclick="RetroSnakeGame.handleSnakeDirection('up')" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg flex justify-center items-center text-slate-300 border border-slate-700 active:bg-amber-500 active:text-slate-950 transition-all">
+                        <i data-lucide="arrow-up" class="w-5 h-5"></i>
+                    </button>
+                    <div></div>
+                    <button onclick="RetroSnakeGame.handleSnakeDirection('left')" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg flex justify-center items-center text-slate-300 border border-slate-700 active:bg-amber-500 active:text-slate-950 transition-all">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    </button>
+                    <div class="bg-slate-950 rounded flex justify-center items-center text-slate-600 text-[8px] font-bold">PAD</div>
+                    <button onclick="RetroSnakeGame.handleSnakeDirection('right')" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg flex justify-center items-center text-slate-300 border border-slate-700 active:bg-amber-500 active:text-slate-950 transition-all">
+                        <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                    </button>
+                    <div></div>
+                    <button onclick="RetroSnakeGame.handleSnakeDirection('down')" class="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg flex justify-center items-center text-slate-300 border border-slate-700 active:bg-amber-500 active:text-slate-950 transition-all">
+                        <i data-lucide="arrow-down" class="w-5 h-5"></i>
+                    </button>
+                    <div></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- F. ACTIVE GAME SCREEN: WORD BUILDER -->
+        <section id="screen-game-word" class="hidden w-full max-w-2xl bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <button onclick="CoreEngine.showDashboard()" class="text-slate-400 hover:text-white text-xs flex items-center gap-1"><i data-lucide="chevron-left" class="w-4 h-4"></i> Leave Game</button>
+                <div class="text-base font-black text-red-400 flex items-center gap-1.5"><i data-lucide="type" class="w-5 h-5"></i> Word Builder</div>
+                <div class="w-10"></div>
+            </div>
+
+            <!-- Categories -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-slate-900/50 p-3 rounded-xl mb-4 text-xs">
+                <button onclick="WordBuilderGame.setWordCategory('animals')" id="wcat-animals" class="px-2 py-1 rounded bg-red-600 text-white font-bold">Animals 🦁</button>
+                <button onclick="WordBuilderGame.setWordCategory('fruits')" id="wcat-fruits" class="px-2 py-1 rounded bg-slate-800 text-slate-400 hover:bg-slate-700">Fruits 🍌</button>
+                <button onclick="WordBuilderGame.setWordCategory('colors')" id="wcat-colors" class="px-2 py-1 rounded bg-slate-800 text-slate-400 hover:bg-slate-700">Colors 🎨</button>
+                <button onclick="WordBuilderGame.setWordCategory('countries')" id="wcat-countries" class="px-2 py-1 rounded bg-slate-800 text-slate-400 hover:bg-slate-700">Countries 🌍</button>
+            </div>
+
+            <div class="flex justify-between items-center px-1 mb-4 flex-wrap gap-2">
+                <div class="text-xs font-semibold text-slate-400">
+                    Remaining Tries: <span id="word-guesses" class="text-white font-bold">6</span>
+                </div>
+                <div class="text-[10px] px-2.5 py-0.5 bg-red-950/40 text-red-400 rounded-full border border-red-900/50 font-bold" id="word-hint-box">
+                    Hint: Tap keys below!
+                </div>
+            </div>
+
+            <!-- Interactive Spaces -->
+            <div class="flex justify-center gap-2 mb-6 flex-wrap" id="word-spaces-container"></div>
+
+            <!-- Keyboard -->
+            <div class="grid grid-cols-7 sm:grid-cols-10 gap-1.5 mb-4" id="word-virtual-keyboard"></div>
+
+            <div class="flex justify-center">
+                <button onclick="WordBuilderGame.initWord()" class="retro-click px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold rounded-lg flex items-center gap-1.5">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Clear Word Board
+                </button>
+            </div>
+        </section>
+
+        <!-- G. NEW GAME SCREEN: PIXEL FLIGHT (FLAPPY BIRD) -->
+        <section id="screen-game-flappy" class="hidden w-full max-w-2xl bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+            <div class="flex justify-between items-center mb-3">
+                <button onclick="CoreEngine.showDashboard()" class="text-slate-400 hover:text-white text-xs flex items-center gap-1"><i data-lucide="chevron-left" class="w-4 h-4"></i> Leave Game</button>
+                <div class="text-base font-black text-sky-500 flex items-center gap-1.5"><i data-lucide="plane" class="w-5 h-5"></i> Pixel Flight</div>
+                <div class="w-10"></div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-1.5 bg-slate-900/50 p-3 rounded-xl mb-3 text-center text-xs">
+                <div>
+                    <div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Score</div>
+                    <div class="text-sm font-bold text-sky-400" id="flappy-score">0</div>
+                </div>
+                <div>
+                    <div class="text-[9px] text-slate-500 font-bold uppercase tracking-wider">High Score</div>
+                    <div class="text-sm font-bold text-sky-300" id="flappy-highscore">0</div>
+                </div>
+            </div>
+
+            <div class="flex flex-col items-center">
+                <div class="relative bg-slate-900 border border-slate-800 rounded-xl overflow-hidden p-0.5 w-full max-w-[400px]">
+                    <canvas id="flappy-canvas" width="400" height="400" class="w-full aspect-square block bg-sky-950/80 rounded-lg cursor-pointer" onclick="PixelFlightGame.handleFlappyTap()"></canvas>
+                    
+                    <!-- Start or End overlay -->
+                    <div id="flappy-overlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-sm flex flex-col justify-center items-center text-center p-6">
+                        <div class="inline-flex p-3 bg-sky-500/10 text-sky-500 rounded-full mb-3" id="flappy-overlay-icon">
+                            <i data-lucide="plane" class="w-10 h-10"></i>
+                        </div>
+                        <h4 class="text-xl font-bold text-white mb-1" id="flappy-overlay-title">Ready to Fly?</h4>
+                        <p class="text-slate-400 text-xs mb-3" id="flappy-overlay-desc">Tap screen, click, or press Spacebar to jump and dodge columns!</p>
+                        <button onclick="PixelFlightGame.startFlappyGame()" class="retro-click px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg text-xs" id="flappy-start-btn">
+                            Launch Avatar Flight
+                        </button>
+                    </div>
+                </div>
+                <p class="text-[10px] text-slate-500 mt-2">Dodge the green columns. Jump to stay alive!</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Custom Notification Popups (Toast Container) -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Footbar -->
+    <footer class="text-center py-4 text-[10px] text-slate-600 border-t border-slate-950 mt-auto">
+        <p>&copy; 2026 InfinitePlay. Your records are securely synced.</p>
+    </footer>
+
+    <!-- Firebase core module configuration script setup -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Declare Global Window variables to secure scoping bounds & prevent ReferenceErrors
+        window.currentActiveGame = null;
+        window.snakeInterval = null;
+        window.flappyLoopId = null;
+
+        // Environment Firebase Parameters Setup
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'infiniteplay-arcade';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "",
+            authDomain: "infiniteplay-arcade.firebaseapp.com",
+            projectId: "infiniteplay-arcade",
+            storageBucket: "infiniteplay-arcade.appspot.com",
+            messagingSenderId: "12345678",
+            appId: "1:12345678:web:12345678"
+        };
+
+        // --- SAFE FIREBASE INITIALIZATION & OFFLINE DETECTION ---
+        let app = null;
+        let db = null;
+        let auth = null;
+        let useFirebase = false;
+
+        try {
+            // Check if API Key exists and is not just an empty placeholder
+            if (firebaseConfig && firebaseConfig.apiKey && firebaseConfig.apiKey !== "" && firebaseConfig.apiKey.length > 5) {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                useFirebase = true;
+                console.log("Firebase initialized successfully. Operating in Online Cloud mode.");
+            } else {
+                console.warn("No active Firebase config detected. Falling back to local offline mode (localStorage).");
+            }
+        } catch (err) {
+            console.warn("Firebase failed to load. Falling back to offline local state:", err);
+            useFirebase = false;
+        }
+
+        let userId = null;
+
+        // Sign in asynchronously to satisfy strict paths configuration
+        async function authenticateUser() {
+            if (!useFirebase) return;
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) {
+                console.debug("Firebase Auth Connection error, operating offline fallback:", err);
+            }
+        }
+
+        // ==========================================
+        // MODULE 1: PROFILE & CORE ENGINE
+        // ==========================================
+        const CoreEngine = {
+            init() {
+                if (useFirebase) {
+                    onAuthStateChanged(auth, async (user) => {
+                        if (user) {
+                            userId = user.uid;
+                            const idDisplay = document.getElementById('user-id-display');
+                            if (idDisplay) idDisplay.innerText = `Registered Cloud ID: ${userId}`;
+                            
+                            // RESTORE USER PROFILE STATS FROM FIRESTORE
+                            await this.loadCloudUserProfile();
+                        } else {
+                            authenticateUser();
+                        }
+                    });
+                } else {
+                    // Local Storage Profile Initializer
+                    const idDisplay = document.getElementById('user-id-display');
+                    if (idDisplay) idDisplay.innerText = `Offline Sandbox Enabled`;
+                    this.loadLocalUserProfile();
+                }
+            },
+
+            loadLocalUserProfile() {
+                try {
+                    const localData = localStorage.getItem('infiniteplay_profile');
+                    if (localData) {
+                        const data = JSON.parse(localData);
+                        profile.username = data.username || "";
+                        profile.avatar = data.avatar || "👾";
+                        profile.xp = data.xp || 0;
+                        profile.gamesPlayed = data.gamesPlayed || 0;
+                        
+                        if (profile.username) {
+                            this.updateProfileVisuals();
+                            this.selectAvatar(profile.avatar);
+                            document.getElementById('screen-login').classList.add('hidden');
+                            document.getElementById('main-header').classList.remove('hidden');
+                            document.getElementById('screen-dashboard').classList.remove('hidden');
+                            this.showToast("✨ Profile Loaded", `Welcome back, ${profile.username}!`, "purple");
+                        }
+                    }
+                } catch (e) {
+                    console.debug("Error restoring Local profile stats:", e);
+                }
+            },
+
+            saveLocalUserProfile() {
+                try {
+                    localStorage.setItem('infiniteplay_profile', JSON.stringify({
+                        username: profile.username,
+                        avatar: profile.avatar,
+                        xp: profile.xp,
+                        gamesPlayed: profile.gamesPlayed
+                    }));
+                } catch (e) {
+                    console.debug("Error committing Local profile stats:", e);
+                }
+            },
+
+            async loadCloudUserProfile() {
+                if (!useFirebase || !auth.currentUser || !userId) {
+                    this.loadLocalUserProfile();
+                    return;
+                }
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'users', userId, 'profile', 'stats');
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        profile.username = data.username || "";
+                        profile.avatar = data.avatar || "👾";
+                        profile.xp = data.xp || 0;
+                        profile.gamesPlayed = data.gamesPlayed || 0;
+                        
+                        if (profile.username) {
+                            this.updateProfileVisuals();
+                            this.selectAvatar(profile.avatar);
+                            document.getElementById('screen-login').classList.add('hidden');
+                            document.getElementById('main-header').classList.remove('hidden');
+                            document.getElementById('screen-dashboard').classList.remove('hidden');
+                            this.showToast("✨ Profile Synchronized", `Loaded cloud stats for ${profile.username}!`, "purple");
+                        }
+                    } else {
+                        this.loadLocalUserProfile();
+                    }
+                } catch (e) {
+                    console.debug("Error restoring Firestore profile stats:", e);
+                    this.loadLocalUserProfile();
+                }
+            },
+
+            async saveCloudUserProfile() {
+                this.saveLocalUserProfile();
+
+                if (!useFirebase || !auth.currentUser || !userId || !profile.username) return;
+                try {
+                    const docRef = doc(db, 'artifacts', appId, 'users', userId, 'profile', 'stats');
+                    await setDoc(docRef, {
+                        username: profile.username,
+                        avatar: profile.avatar,
+                        xp: profile.xp,
+                        gamesPlayed: profile.gamesPlayed
+                    });
+                } catch (e) {
+                    console.debug("Error committing Firestore profile stats:", e);
+                }
+            },
+
+            launchGame(game) {
+                window.currentActiveGame = game;
+                profile.gamesPlayed += 1;
+                this.updateProfileVisuals();
+                this.saveCloudUserProfile();
+
+                // Screen Switch
+                document.querySelectorAll('main > section').forEach(sect => sect.classList.add('hidden'));
+                document.getElementById(`screen-game-${game}`).classList.remove('hidden');
+
+                // Dispatch Initializers
+                if (game === 'memory') MemoryMatchGame.initMemory();
+                if (game === 'math') MathQuestGame.initMath();
+                if (game === 'draw') ArtStudioGame.initDraw();
+                if (game === 'ttt') TicTacToeGame.initTTT();
+                if (game === 'snake') RetroSnakeGame.initSnake();
+                if (game === 'word') WordBuilderGame.initWord();
+                if (game === 'flappy') PixelFlightGame.initFlappy();
+
+                this.showToast("🎮 Match Loaded", `Ready to play ${game.toUpperCase()}`, "purple");
+            },
+
+            selectAvatar(emoji) {
+                document.querySelectorAll('.avatar-option').forEach(btn => {
+                    btn.classList.remove('border-purple-500', 'bg-purple-600/20');
+                    if (btn.innerText === emoji) {
+                        btn.classList.add('border-purple-500', 'bg-purple-600/20');
+                    }
+                });
+                profile.avatar = emoji;
+            },
+
+            login() {
+                const rawInput = document.getElementById('username-input').value.trim();
+                
+                if (!rawInput) {
+                    this.showToast("⚠️ Nickname Compulsory", "Please enter your Nickname to continue into InfinitePlay!", "red");
+                    return;
+                }
+                
+                profile.username = rawInput;
+                this.updateProfileVisuals();
+                
+                this.shuffleAllPlatformModules();
+                this.saveCloudUserProfile();
+
+                document.getElementById('screen-login').classList.add('hidden');
+                document.getElementById('main-header').classList.remove('hidden');
+                document.getElementById('screen-dashboard').classList.remove('hidden');
+
+                this.showToast("🚀 Logged In", `Welcome back, ${profile.username}!`, "purple");
+            },
+
+            shuffleAllPlatformModules() {
+                Object.keys(vocabulary).forEach(category => {
+                    vocabulary[category].sort(() => 0.5 - Math.random());
+                });
+                wordHistory = { animals: [], fruits: [], colors: [], countries: [] };
+            },
+
+            logout() {
+                profile.gamesPlayed = 0;
+                profile.xp = 0;
+                profile.username = "";
+                document.getElementById('username-input').value = "";
+                this.updateProfileVisuals();
+
+                document.getElementById('main-header').classList.add('hidden');
+                document.getElementById('screen-dashboard').classList.add('hidden');
+                document.querySelectorAll('main > section').forEach(sect => sect.classList.add('hidden'));
+                document.getElementById('screen-login').classList.remove('hidden');
+            },
+
+            showDashboard() {
+                if (window.snakeInterval) {
+                    clearInterval(window.snakeInterval);
+                    window.snakeInterval = null;
+                }
+                if (window.flappyLoopId) {
+                    cancelAnimationFrame(window.flappyLoopId);
+                    window.flappyLoopId = null;
+                }
+                document.querySelectorAll('main > section').forEach(sect => sect.classList.add('hidden'));
+                document.getElementById('screen-dashboard').classList.remove('hidden');
+            },
+
+            updateProfileVisuals() {
+                document.getElementById('header-username').innerText = profile.username || "Player";
+                document.getElementById('header-xp').innerText = profile.xp;
+                document.getElementById('header-avatar').innerText = profile.avatar;
+                document.getElementById('dash-avatar').innerText = profile.avatar;
+                document.getElementById('dash-username').innerText = profile.username || "Player";
+                document.getElementById('stat-played').innerText = profile.gamesPlayed;
+                document.getElementById('stat-xp').innerText = profile.xp;
+            },
+
+            grantXP(amount) {
+                profile.xp += amount;
+                this.updateProfileVisuals();
+                this.saveCloudUserProfile();
+                this.showToast("✨ Milestone Unlock", `+${amount} XP Gained!`, "amber");
+            },
+
+            showToast(title, text, style) {
+                const container = document.getElementById('toast-container');
+                let borderStyle = "border-purple-500 bg-purple-950/90";
+                if (style === 'red') borderStyle = "border-red-500 bg-red-950/90";
+                if (style === 'emerald') borderStyle = "border-emerald-500 bg-emerald-950/90";
+                if (style === 'amber') borderStyle = "border-amber-500 bg-amber-950/90";
+
+                const notification = document.createElement('div');
+                notification.className = `p-3 rounded-lg border ${borderStyle} text-white shadow-xl min-w-[240px] pointer-events-auto transition-all duration-300 transform translate-y-4 opacity-0`;
+                notification.innerHTML = `
+                    <div class="flex justify-between items-center mb-0.5">
+                        <span class="font-bold text-xs">${title}</span>
+                    </div>
+                    <p class="text-[10px] text-slate-300">${text}</p>
+                `;
+                container.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.classList.remove('translate-y-4', 'opacity-0');
+                }, 50);
+
+                setTimeout(() => {
+                    notification.classList.add('opacity-0', 'scale-90');
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+            }
+        };
+
+        // --- PLATFORM PROFILE ENGINE CONTROLLER ---
+        let profile = {
+            username: "",
+            avatar: "👾",
+            xp: 0,
+            gamesPlayed: 0
+        };
+
+        // ==========================================
+        // MODULE 2: GAME - MEMORY MATCH
+        // ==========================================
+        let memoryTheme = 'emoji';
+        let memorySelected = [];
+        let memoryMoves = 0;
+        let memoryMatchedPairs = 0;
+        let isMemoryLock = false;
+
+        const MemoryMatchGame = {
+            setMemoryTheme(theme) {
+                memoryTheme = theme;
+                document.getElementById('mtheme-emoji').className = theme === 'emoji' ? 'px-2.5 py-1 rounded bg-purple-600 text-white font-bold' : 'px-2.5 py-1 rounded bg-slate-800 text-slate-400 hover:bg-slate-700';
+                document.getElementById('mtheme-shapes').className = theme === 'shapes' ? 'px-2.5 py-1 rounded bg-purple-600 text-white font-bold' : 'px-2.5 py-1 rounded bg-slate-800 text-slate-400 hover:bg-slate-700';
+                this.initMemory();
+            },
+
+            initMemory() {
+                memoryMoves = 0;
+                memoryMatchedPairs = 0;
+                memorySelected = [];
+                isMemoryLock = false;
+                document.getElementById('memory-moves').innerText = memoryMoves;
+                document.getElementById('memory-pairs').innerText = `0/8`;
+
+                const emojis = ['🦊','🦊','🐹','🐹','🐼','🐼','🐯','🐯','🦁','🦁','🐶','🐶','🐸','🐸','🐙','🐙'];
+                const shapes = ['🔺','🔺','🟩','🟩','🟡','🟡','⭐','⭐','🔷','🔷','🖤','🖤','🌀','🌀','🎯','🎯'];
+                
+                const cardsList = memoryTheme === 'emoji' ? [...emojis] : [...shapes];
+                cardsList.sort(() => 0.5 - Math.random());
+
+                const board = document.getElementById('memory-board');
+                board.innerHTML = '';
+
+                cardsList.forEach((item, index) => {
+                    const card = document.createElement('div');
+                    card.className = "card-container cursor-pointer";
+                    card.innerHTML = `
+                        <div class="card-inner">
+                            <div class="card-front select-none">
+                                ?
+                            </div>
+                            <div class="card-back select-none">
+                                ${item}
+                            </div>
+                        </div>
+                    `;
+                    card.onclick = () => MemoryMatchGame.onMemoryCardClicked(card, item, index);
+                    board.appendChild(card);
+                });
+            },
+
+            onMemoryCardClicked(cardElement, symbol, index) {
+                const inner = cardElement.querySelector('.card-inner');
+                
+                if (isMemoryLock) return;
+                if (inner.classList.contains('card-flipped')) return;
+                if (memorySelected.some(c => c.index === index)) return;
+
+                inner.classList.add('card-flipped');
+                memorySelected.push({ element: cardElement, symbol: symbol, index: index });
+
+                if (memorySelected.length === 2) {
+                    memoryMoves++;
+                    document.getElementById('memory-moves').innerText = memoryMoves;
+
+                    const first = memorySelected[0];
+                    const second = memorySelected[1];
+
+                    if (first.symbol === second.symbol) {
+                        memoryMatchedPairs++;
+                        document.getElementById('memory-pairs').innerText = `${memoryMatchedPairs}/8`;
+                        
+                        setTimeout(() => {
+                            first.element.classList.add('ring-2', 'ring-emerald-500');
+                            second.element.classList.add('ring-2', 'ring-emerald-500');
+                        }, 200);
+
+                        memorySelected = [];
+
+                        if (memoryMatchedPairs === 8) {
+                            setTimeout(() => {
+                                CoreEngine.showToast("🏆 Perfect Memory Match!", "Clear sweep!", "emerald");
+                                CoreEngine.grantXP(50);
+                            }, 500);
+                        }
+                    } else {
+                        isMemoryLock = true;
+                        setTimeout(() => {
+                            first.element.querySelector('.card-inner').classList.remove('card-flipped');
+                            second.element.querySelector('.card-inner').classList.remove('card-flipped');
+                            memorySelected = [];
+                            isMemoryLock = false;
+                        }, 1000);
+                    }
+                }
+            }
+        };
+
+        // ==========================================
+        // MODULE 3: GAME - MATH QUEST
+        // ==========================================
+        let mathTimer = null;
+        let mathTimeLeft = 30;
+        let mathScore = 0;
+        let mathCorrectAns = 0;
+
+        const MathQuestGame = {
+            initMath() {
+                mathScore = 0;
+                mathTimeLeft = 30;
+                document.getElementById('math-score').innerText = mathScore;
+                document.getElementById('math-timer').innerText = mathTimeLeft + "s";
+                
+                document.getElementById('math-play-zone').classList.remove('hidden');
+                document.getElementById('math-game-over-zone').classList.add('hidden');
+
+                if (mathTimer) clearInterval(mathTimer);
+                mathTimer = setInterval(() => this.updateMathClock(), 1000);
+
+                this.nextMathQuestion();
+            },
+
+            updateMathClock() {
+                mathTimeLeft--;
+                document.getElementById('math-timer').innerText = mathTimeLeft + "s";
+                const percent = (mathTimeLeft / 30) * 100;
+                document.getElementById('math-progress').style.width = percent + "%";
+
+                if (mathTimeLeft <= 0) {
+                    clearInterval(mathTimer);
+                    this.endMathGame();
+                }
+            },
+
+            nextMathQuestion() {
+                const difficulty = document.getElementById('math-diff').value;
+                let val1 = 0, val2 = 0, sign = '+';
+                
+                if (difficulty === 'easy') {
+                    val1 = Math.floor(Math.random() * 10) + 1;
+                    val2 = Math.floor(Math.random() * 10) + 1;
+                    sign = Math.random() > 0.5 ? '+' : '-';
+                } else if (difficulty === 'medium') {
+                    val1 = Math.floor(Math.random() * 25) + 5;
+                    val2 = Math.floor(Math.random() * 20) + 1;
+                    sign = Math.random() > 0.6 ? '*' : (Math.random() > 0.5 ? '-' : '+');
+                } else {
+                    val1 = Math.floor(Math.random() * 100) + 10;
+                    val2 = Math.floor(Math.random() * 50) + 5;
+                    sign = Math.random() > 0.7 ? '*' : (Math.random() > 0.5 ? '-' : '+');
+                }
+
+                if (sign === '-' && val1 < val2) {
+                    const temp = val1; val1 = val2; val2 = temp;
+                }
+
+                if (sign === '*') {
+                    document.getElementById('math-equation').innerText = `${val1} × ${val2} = ?`;
+                    mathCorrectAns = val1 * val2;
+                } else if (sign === '-') {
+                    document.getElementById('math-equation').innerText = `${val1} - ${val2} = ?`;
+                    mathCorrectAns = val1 - val2;
+                } else {
+                    document.getElementById('math-equation').innerText = `${val1} + ${val2} = ?`;
+                    mathCorrectAns = val1 + val2;
+                }
+
+                const distractions = new Set();
+                while (distractions.size < 3) {
+                    const wrong = mathCorrectAns + (Math.floor(Math.random() * 10) + 1) * (Math.random() > 0.5 ? 1 : -1);
+                    if (wrong !== mathCorrectAns && wrong >= 0) distractions.add(wrong);
+                }
+
+                const choices = [mathCorrectAns, ...Array.from(distractions)];
+                choices.sort(() => 0.5 - Math.random());
+
+                const container = document.getElementById('math-options-container');
+                container.innerHTML = '';
+
+                choices.forEach(val => {
+                    const btn = document.createElement('button');
+                    btn.className = "py-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500 rounded-lg text-sm text-white font-semibold transition-all";
+                    btn.innerText = val;
+                    btn.onclick = () => {
+                        if (val === mathCorrectAns) {
+                            btn.className = "py-3 bg-emerald-600 border border-emerald-500 rounded-lg text-sm text-white font-semibold";
+                            mathScore += 10;
+                            document.getElementById('math-score').innerText = mathScore;
+                            CoreEngine.showToast("✨ Correct", "+10 Score Points", "emerald");
+                            setTimeout(() => this.nextMathQuestion(), 300);
+                        } else {
+                            btn.className = "py-3 bg-red-600 border border-red-500 rounded-lg text-sm text-white font-semibold";
+                            mathTimeLeft = Math.max(0, mathTimeLeft - 3);
+                            CoreEngine.showToast("❌ Incorrect", "-3 seconds deduction", "red");
+                            setTimeout(() => this.nextMathQuestion(), 300);
+                        }
+                    };
+                    container.appendChild(btn);
+                });
+            },
+
+            endMathGame() {
+                document.getElementById('math-play-zone').classList.add('hidden');
+                document.getElementById('math-game-over-zone').classList.remove('hidden');
+                document.getElementById('math-final-score').innerText = mathScore;
+                CoreEngine.grantXP(Math.floor(mathScore / 2));
+            }
+        };
+
+        // ==========================================
+        // MODULE 4: GAME - ART STUDIO
+        // ==========================================
+        let artCanvas = null, artCtx = null, artPainting = false;
+        let artBrushColor = "#ec4899";
+
+        const ArtStudioGame = {
+            initDraw() {
+                artCanvas = document.getElementById('art-canvas');
+                artCtx = artCanvas.getContext('2d');
+                
+                // Clear previous listeners to avoid duplicates
+                artCanvas.replaceWith(artCanvas.cloneNode(true));
+                artCanvas = document.getElementById('art-canvas');
+                artCtx = artCanvas.getContext('2d');
+
+                artCanvas.addEventListener('mousedown', (e) => this.startPaint(e));
+                artCanvas.addEventListener('mousemove', (e) => this.paintStroke(e));
+                artCanvas.addEventListener('mouseup', () => this.stopPaint());
+                artCanvas.addEventListener('mouseout', () => this.stopPaint());
+
+                artCanvas.addEventListener('touchstart', (e) => {
+                    const t = e.touches[0];
+                    artCanvas.dispatchEvent(new MouseEvent('mousedown', { clientX: t.clientX, clientY: t.clientY }));
+                }, { passive: false });
+
+                artCanvas.addEventListener('touchmove', (e) => {
+                    const t = e.touches[0];
+                    artCanvas.dispatchEvent(new MouseEvent('mousemove', { clientX: t.clientX, clientY: t.clientY }));
+                }, { passive: false });
+
+                artCanvas.addEventListener('touchend', () => {
+                    artCanvas.dispatchEvent(new MouseEvent('mouseup', {}));
+                }, { passive: false });
+
+                document.getElementById('art-color-picker').addEventListener('input', (e) => {
+                    artBrushColor = e.target.value;
+                    document.getElementById('art-color-text').innerText = artBrushColor;
+                });
+
+                document.getElementById('art-brush-size').addEventListener('input', (e) => {
+                    document.getElementById('brush-size-val').innerText = e.target.value + " px";
+                });
+
+                this.clearArtCanvas();
+            },
+
+            setBrushColor(hex) {
+                artBrushColor = hex;
+                document.getElementById('art-color-picker').value = hex;
+                document.getElementById('art-color-text').innerText = hex;
+            },
+
+            clearArtCanvas() {
+                artCtx.fillStyle = '#ffffff';
+                artCtx.fillRect(0, 0, artCanvas.width, artCanvas.height);
+                this.changeColoringTemplate();
+            },
+
+            startPaint(e) {
+                artPainting = true;
+                this.paintStroke(e);
+            },
+
+            paintStroke(e) {
+                if (!artPainting) return;
+                const rect = artCanvas.getBoundingClientRect();
+                const sx = artCanvas.width / rect.width;
+                const sy = artCanvas.height / rect.height;
+
+                artCtx.lineWidth = document.getElementById('art-brush-size').value;
+                artCtx.lineCap = 'round';
+                artCtx.strokeStyle = artBrushColor;
+
+                artCtx.lineTo((e.clientX - rect.left) * sx, (e.clientY - rect.top) * sy);
+                artCtx.stroke();
+                artCtx.beginPath();
+                artCtx.moveTo((e.clientX - rect.left) * sx, (e.clientY - rect.top) * sy);
+            },
+
+            stopPaint() {
+                artPainting = false;
+                artCtx.beginPath();
+            },
+
+            changeColoringTemplate() {
+                const layout = document.getElementById('art-template-select').value;
+                artCtx.fillStyle = '#ffffff';
+                artCtx.fillRect(0, 0, artCanvas.width, artCanvas.height);
+
+                if (layout === 'blank') return;
+
+                artCtx.strokeStyle = '#475569';
+                artCtx.lineWidth = 3;
+                artCtx.lineCap = 'round';
+
+                if (layout === 'cat') {
+                    artCtx.beginPath();
+                    artCtx.arc(250, 260, 90, 0, Math.PI * 2);
+                    artCtx.moveTo(180, 190); artCtx.lineTo(150, 120); artCtx.lineTo(210, 180);
+                    artCtx.moveTo(320, 190); artCtx.lineTo(350, 120); artCtx.lineTo(290, 180);
+                    artCtx.stroke();
+                } else if (layout === 'house') {
+                    artCtx.beginPath();
+                    artCtx.rect(160, 240, 180, 150);
+                    artCtx.moveTo(130, 240); artCtx.lineTo(250, 150); artCtx.lineTo(370, 240);
+                    artCtx.rect(225, 290, 50, 100);
+                    artCtx.stroke();
+                } else if (layout === 'star') {
+                    artCtx.beginPath();
+                    let rot = Math.PI/2*3, step=Math.PI/5, cx=250, cy=220;
+                    artCtx.moveTo(cx, cy - 80);
+                    for(let i=0; i<5; i++) {
+                        artCtx.lineTo(cx + Math.cos(rot)*80, cy + Math.sin(rot)*80); rot += step;
+                        artCtx.lineTo(cx + Math.cos(rot)*35, cy + Math.sin(rot)*35); rot += step;
+                    }
+                    artCtx.closePath();
+                    artCtx.stroke();
+                }
+            },
+
+            downloadCanvas() {
+                const element = document.createElement('a');
+                element.download = `art-${profile.username}.png`;
+                element.href = artCanvas.toDataURL();
+                element.click();
+                CoreEngine.grantXP(25);
+            }
+        };
+
+        // ==========================================
+        // MODULE 5: GAME - TIC-TAC-TOE
+        // ==========================================
+        let tttMode = 'ai';
+        let tttTurn = 'X';
+        let tttState = ["", "", "", "", "", "", "", "", ""];
+
+        const TicTacToeGame = {
+            setTTTMode(mode) {
+                tttMode = mode;
+                document.getElementById('tttmode-ai').className = mode === 'ai' ? 'px-2.5 py-1 rounded bg-blue-600 text-white font-bold' : 'px-2.5 py-1 rounded bg-slate-800 text-slate-400 hover:bg-slate-700';
+                document.getElementById('tttmode-local').className = mode === 'local' ? 'px-2.5 py-1 rounded bg-blue-600 text-white font-bold' : 'px-2.5 py-1 rounded bg-slate-800 text-slate-400 hover:bg-slate-700';
+                this.initTTT();
+            },
+
+            initTTT() {
+                tttTurn = 'X';
+                tttState = ["", "", "", "", "", "", "", "", ""];
+                document.getElementById('ttt-status').innerText = "Player X's Turn";
+
+                const container = document.getElementById('ttt-board');
+                container.innerHTML = '';
+
+                tttState.forEach((val, idx) => {
+                    const square = document.createElement('button');
+                    square.className = "w-full aspect-square bg-slate-900 border border-slate-800 rounded-xl text-2xl font-black hover:bg-slate-850 flex items-center justify-center transition-colors focus:outline-none";
+                    square.onclick = () => this.runTTTStep(square, idx);
+                    container.appendChild(square);
+                });
+            },
+
+            runTTTStep(element, idx) {
+                if (tttState[idx] !== "" || this.evaluateTTTWinner()) return;
+
+                tttState[idx] = tttTurn;
+                element.innerText = tttTurn;
+                element.className = `w-full aspect-square bg-slate-800 border ${tttTurn === 'X' ? 'border-purple-500 text-purple-400' : 'border-blue-500 text-blue-400'} rounded-xl text-3xl font-black flex items-center justify-center`;
+
+                if (this.evaluateTTTWinner()) {
+                    document.getElementById('ttt-status').innerText = `Player ${tttTurn} Wins! 🎉`;
+                    CoreEngine.showToast("🏆 Win Record!", `Player ${tttTurn} matched 3 shapes`, "emerald");
+                    CoreEngine.grantXP(20);
+                    return;
+                }
+
+                if (!tttState.includes("")) {
+                    document.getElementById('ttt-status').innerText = "Draw Match! 👔";
+                    CoreEngine.showToast("👔 Tie Match", "Both blocks balanced", "slate");
+                    return;
+                }
+
+                tttTurn = tttTurn === 'X' ? 'O' : 'X';
+                document.getElementById('ttt-status').innerText = `Player ${tttTurn}'s Turn`;
+
+                if (tttMode === 'ai' && tttTurn === 'O') {
+                    setTimeout(() => this.runTTTBot(), 400);
+                }
+            },
+
+            runTTTBot() {
+                let choice = null;
+                // Best block check
+                for(let i=0; i<9; i++) {
+                    if(tttState[i] === "") {
+                        tttState[i] = "O";
+                        if(this.evaluateTTTWinner()) { tttState[i] = ""; choice = i; break; }
+                        tttState[i] = "";
+                    }
+                }
+                if (choice === null) {
+                    for(let i=0; i<9; i++) {
+                        if(tttState[i] === "") {
+                            tttState[i] = "X";
+                            if(this.evaluateTTTWinner()) { tttState[i] = ""; choice = i; break; }
+                            tttState[i] = "";
+                        }
+                    }
+                }
+                if (choice === null) {
+                    if(tttState[4] === "") choice = 4;
+                }
+                if (choice === null) {
+                    const empty = tttState.map((v, i) => v === "" ? i : null).filter(v => v !== null);
+                    choice = empty[Math.floor(Math.random() * empty.length)];
+                }
+
+                if(choice !== null) {
+                    const target = document.getElementById('ttt-board').children[choice];
+                    this.runTTTStep(target, choice);
+                }
+            },
+
+            evaluateTTTWinner() {
+                const wins = [[0,1,2], [3,4,5], [6,7,8], [0,3,6], [1,4,7], [2,5,8], [0,4,8], [2,4,6]];
+                return wins.some(w => tttState[w[0]] !== "" && tttState[w[0]] === tttState[w[1]] && tttState[w[1]] === tttState[w[2]]);
+            }
+        };
+
+        // ==========================================
+        // MODULE 6: GAME - RETRO SNAKE
+        // ==========================================
+        let snakeCanvas = null, snakeCtx = null, snakeBody = [], snakeDir = 'right';
+        let snakeFood = {x: 0, y: 0}, snakeScore = 0, snakeHighScore = 0;
+        const sCell = 20;
+
+        const RetroSnakeGame = {
+            initSnake() {
+                snakeCanvas = document.getElementById('snake-canvas');
+                snakeCtx = snakeCanvas.getContext('2d');
+                document.getElementById('snake-gameover-overlay').classList.add('hidden');
+                
+                snakeScore = 0;
+                document.getElementById('snake-score').innerText = snakeScore;
+                
+                snakeBody = [{x: 100, y: 200}, {x: 80, y: 200}, {x: 60, y: 200}];
+                snakeDir = 'right';
+
+                this.placeFood();
+
+                if (window.snakeInterval) clearInterval(window.snakeInterval);
+                const speed = parseInt(document.getElementById('snake-speed').value);
+                window.snakeInterval = setInterval(() => this.refreshSnakeFrame(), speed);
+            },
+
+            resetSnakeSpeed() {
+                if (window.currentActiveGame === 'snake') this.initSnake();
+            },
+
+            placeFood() {
+                const cols = snakeCanvas.width / sCell;
+                const rows = snakeCanvas.height / sCell;
+                snakeFood = {
+                    x: Math.floor(Math.random() * cols) * sCell,
+                    y: Math.floor(Math.random() * rows) * sCell
+                };
+            },
+
+            refreshSnakeFrame() {
+                let nextX = snakeBody[0].x;
+                let nextY = snakeBody[0].y;
+
+                if (snakeDir === 'right') nextX += sCell;
+                if (snakeDir === 'left') nextX -= sCell;
+                if (snakeDir === 'up') nextY -= sCell;
+                if (snakeDir === 'down') nextY += sCell;
+
+                if (nextX < 0 || nextX >= snakeCanvas.width || nextY < 0 || nextY >= snakeCanvas.height) {
+                    return this.stopSnake();
+                }
+
+                for(let i=0; i<snakeBody.length; i++) {
+                    if (snakeBody[i].x === nextX && snakeBody[i].y === nextY) return this.stopSnake();
+                }
+
+                snakeBody.unshift({x: nextX, y: nextY});
+
+                if (nextX === snakeFood.x && nextY === snakeFood.y) {
+                    snakeScore += 10;
+                    document.getElementById('snake-score').innerText = snakeScore;
+                    this.placeFood();
+                    CoreEngine.showToast("🍎 Apple Eaten", "+10 Score Points", "amber");
+                } else {
+                    snakeBody.pop();
+                }
+
+                snakeCtx.fillStyle = '#090d16';
+                snakeCtx.fillRect(0, 0, snakeCanvas.width, snakeCanvas.height);
+
+                snakeCtx.fillStyle = '#ef4444';
+                snakeCtx.beginPath();
+                snakeCtx.arc(snakeFood.x + sCell/2, snakeFood.y + sCell/2, sCell/2 - 2, 0, Math.PI*2);
+                snakeCtx.fill();
+
+                snakeBody.forEach((part, idx) => {
+                    snakeCtx.fillStyle = idx === 0 ? '#fbbf24' : '#d97706';
+                    snakeCtx.fillRect(part.x, part.y, sCell, sCell);
+                });
+            },
+
+            handleSnakeDirection(direction) {
+                if (direction === 'left' && snakeDir !== 'right') snakeDir = 'left';
+                if (direction === 'right' && snakeDir !== 'left') snakeDir = 'right';
+                if (direction === 'up' && snakeDir !== 'down') snakeDir = 'up';
+                if (direction === 'down' && snakeDir !== 'up') snakeDir = 'down';
+            },
+
+            stopSnake() {
+                clearInterval(window.snakeInterval);
+                window.snakeInterval = null;
+
+                if (snakeScore > snakeHighScore) {
+                    snakeHighScore = snakeScore;
+                    document.getElementById('snake-highscore').innerText = snakeHighScore;
+                }
+
+                document.getElementById('snake-final-apples').innerText = snakeScore;
+                document.getElementById('snake-gameover-overlay').classList.remove('hidden');
+                CoreEngine.grantXP(Math.floor(snakeScore / 2));
+            }
+        };
+
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            if (key === 'arrowup' || key === 'w') RetroSnakeGame.handleSnakeDirection('up');
+            if (key === 'arrowdown' || key === 's') RetroSnakeGame.handleSnakeDirection('down');
+            if (key === 'arrowleft' || key === 'a') RetroSnakeGame.handleSnakeDirection('left');
+            if (key === 'arrowright' || key === 'd') RetroSnakeGame.handleSnakeDirection('right');
+        });
+
+        // ==========================================
+        // GAME MODULE 7: GAME - WORD BUILDER (ENDLESS EXPANDED BANK)
+        // ==========================================
+        const vocabulary = {
+            animals: [
+                { word: "TIGER", hint: "Striped wild apex predator cat" },
+                { word: "ELEPHANT", hint: "Trunk-bearing colossal mammal" },
+                { word: "PENGUIN", hint: "Flightless bird living in polar ice" },
+                { word: "GIRAFFE", hint: "Tallest mammal with a long patterned neck" },
+                { word: "KANGAROO", hint: "Hopping marsupial native to Australia" },
+                { word: "DOLPHIN", hint: "Intelligent and playful aquatic mammal" },
+                { word: "CHEETAH", hint: "The fastest land animal on the planet" },
+                { word: "OCTOPUS", hint: "Eight-armed soft-bodied sea creature" },
+                { word: "SQUIRREL", hint: "Acorn-gathering bushy-tailed rodent" },
+                { word: "FLAMINGO", hint: "Tall pink wading bird that stands on one leg" },
+                { word: "CHAMELEON", hint: "Lizard capable of shifting skin color to blend in" },
+                { word: "PLATYPUS", hint: "Semi-aquatic egg-laying mammal with duck-like bill" },
+                { word: "KOALA", hint: "Tree-climbing marsupial feeding solely on eucalyptus" },
+                { word: "ALLIGATOR", hint: "Large predatory freshwater reptile with wide snout" },
+                { word: "HEDGEHOG", hint: "Small spiny mammal that curls into a prickly ball" },
+                { word: "JELLYFISH", hint: "Gelatinous drifting sea creature with stinging tentacles" },
+                { word: "CHIMPANZEE", hint: "Highly intelligent primate sharing close human DNA" },
+                { word: "LEOPARD", hint: "Powerful spotted wildcat known for tree climbing" },
+                { word: "MEERKAT", hint: "Small pack-hunting African mongoose standing upright" },
+                { word: "WOLVERINE", hint: "Fierce, solitary, stocky northern carnivore" }
+            ],
+            fruits: [
+                { word: "MANGO", hint: "Sweet juicy orange tropical fruit" },
+                { word: "CHERRY", hint: "Small round red stone fruit on stems" },
+                { word: "WATERMELON", hint: "Huge striped melon with pink flesh" },
+                { word: "PINEAPPLE", hint: "Spiky tropical fruit with sweet yellow flesh" },
+                { word: "BANANA", hint: "Long curved yellow fruit packed with potassium" },
+                { word: "AVOCADO", hint: "Creamy green fruit used to make guacamole" },
+                { word: "STRAWBERRY", hint: "Heart-shaped red berry with seeds on the outside" },
+                { word: "BLUEBERRY", hint: "Small sweet round indigo fruit" },
+                { word: "POMEGRANATE", hint: "Hard-skinned fruit containing many edible ruby seeds" },
+                { word: "GRAPEFRUIT", hint: "Large sour citrus fruit with pink or yellow pulp" },
+                { word: "KIWIFRUIT", hint: "Small fuzzy brown fruit with bright green flesh inside" },
+                { word: "RASPBERRY", hint: "Fragile red hollow aggregate berry fruit" },
+                { word: "BLACKBERRY", hint: "Dark purple aggregate fruit growing on thorny brambles" },
+                { word: "PAPAYA", hint: "Tropical pear-shaped fruit with sweet orange flesh" },
+                { word: "COCONUT", hint: "Large fibrous brown nut with milky water inside" },
+                { word: "APRICOT", hint: "Velvety orange-yellow stone fruit akin to a small peach" },
+                { word: "CRANBERRY", hint: "Small tart red berry often boiled into holiday sauce" },
+                { word: "PASSIONFRUIT", hint: "Egg-shaped tropical fruit with aromatic yellow pulp" }
+            ],
+            colors: [
+                { word: "PURPLE", hint: "Color made by mixing red and blue" },
+                { word: "TURQUOISE", hint: "Vibrant ocean cyan-green color" },
+                { word: "SCARLET", hint: "Bright brilliant orange-red tint" },
+                { word: "MAGENTA", hint: "Vibrant purplish-red color" },
+                { word: "GOLDEN", hint: "Warm yellow metallic color of wealth" },
+                { word: "CHARCOAL", hint: "Dark gray color resembling burnt wood" },
+                { word: "EMERALD", hint: "Deep lustrous green color resembling precious beryl" },
+                { word: "SAPPHIRE", hint: "Deep majestic blue shade of precious corundum gem" },
+                { word: "AMETHYST", hint: "Translucent violet or purple shade of quartz" },
+                { word: "AMBER", hint: "Warm golden-orange fossilized tree resin color" },
+                { word: "OBSIDIAN", hint: "Glossy volcanic glass jet black color" },
+                { word: "LAVENDER", hint: "Soft pale bluish-purple hue of herbal flower" },
+                { word: "VERMILION", hint: "Brilliant red pigment made from ground cinnabar" },
+                { word: "MAROON", hint: "Dark brownish-red or claret color" },
+                { word: "CELADON", hint: "Pale jade-green glaze color of ceramic origin" },
+                { word: "AQUAMARINE", hint: "Pale blue-green shade of coastal ocean water" }
+            ],
+            countries: [
+                { word: "MEXICO", hint: "Country known for tacos and sombreros" },
+                { word: "FRANCE", hint: "Home to the Eiffel Tower and baguette" },
+                { word: "EGYPT", hint: "Famous for ancient pyramids and camels" },
+                { word: "CANADA", hint: "Known for maple syrup and cold winters" },
+                { word: "BRAZIL", hint: "Famous for carnival, football, and the Amazon" },
+                { word: "ITALY", hint: "Home of pizza, pasta, and the Colosseum" },
+                { word: "AUSTRALIA", hint: "Southern island continent home to koalas and outback" },
+                { word: "JAPAN", hint: "East Asian island nation famed for sushi, anime, and Mt. Fuji" },
+                { word: "GERMANY", hint: "Central European country famed for castles and autobahn" },
+                { word: "ARGENTINA", hint: "South American home of tango dance and Patagonia" },
+                { word: "SWITZERLAND", hint: "Alpine country famous for watches, chocolate, and banks" },
+                { word: "SINGAPORE", hint: "Southeastern futuristic city-state with Merlion park" },
+                { word: "THAILAND", hint: "Southeast Asian kingdom known for ornate temples and beaches" },
+                { word: "PORTUGAL", hint: "Iberian coastal nation famous for pastel de nata and explorers" },
+                { word: "NETHERLANDS", hint: "European lowlands famous for windmills, canals, and tulips" },
+                { word: "MADAGASCAR", hint: "Large African island nation unique for lemurs and baobabs" },
+                { word: "GREECE", hint: "Mediterranean cradle of democracy and ancient temples" },
+                { word: "FINLAND", hint: "Nordic home of sauna, northern lights, and lakes" }
+            ]
+        };
+
+        let activeCategory = 'animals';
+        let secretWord = '';
+        let wordGuessesLeft = 6;
+        let guessedLetters = new Set();
+        let wordHistory = { animals: [], fruits: [], colors: [], countries: [] };
+
+        const WordBuilderGame = {
+            setWordCategory(category) {
+                activeCategory = category;
+                const elements = ['animals', 'fruits', 'colors', 'countries'];
+                elements.forEach(c => {
+                    document.getElementById(`wcat-${c}`).className = c === category ? 'px-2 py-1 rounded bg-red-600 text-white font-bold' : 'px-2 py-1 rounded bg-slate-800 text-slate-400 hover:bg-slate-700';
+                });
+                this.initWord();
+            },
+
+            initWord() {
+                const list = vocabulary[activeCategory];
+                const history = wordHistory[activeCategory];
+                
+                // Filter unique unrepeated words
+                let availableWords = list.filter(item => !history.includes(item.word.toUpperCase()));
+                if (availableWords.length === 0) {
+                    wordHistory[activeCategory] = [];
+                    availableWords = list;
+                }
+
+                // Random selection of word item
+                const data = availableWords[Math.floor(Math.random() * availableWords.length)];
+                secretWord = data.word.toUpperCase();
+                wordGuessesLeft = 6;
+                guessedLetters.clear();
+
+                history.push(secretWord);
+                if (history.length > 10) history.shift();
+
+                document.getElementById('word-guesses').innerText = wordGuessesLeft;
+                document.getElementById('word-hint-box').innerText = `Hint: ${data.hint}`;
+
+                this.renderWordSpaces();
+                this.renderKeyboard();
+            },
+
+            renderWordSpaces() {
+                const container = document.getElementById('word-spaces-container');
+                container.innerHTML = '';
+
+                secretWord.split('').forEach(char => {
+                    const space = document.createElement('div');
+                    space.className = "w-9 h-11 bg-slate-900 border border-slate-800 rounded-lg flex items-center justify-center font-black text-lg text-white uppercase";
+                    if (guessedLetters.has(char)) {
+                        space.innerText = char;
+                        space.className += " border-red-500 bg-red-950/20";
+                    } else {
+                        space.innerText = '';
+                    }
+                    container.appendChild(space);
+                });
+            },
+
+            renderKeyboard() {
+                const container = document.getElementById('word-virtual-keyboard');
+                container.innerHTML = '';
+
+                "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").forEach(char => {
+                    const button = document.createElement('button');
+                    button.className = "p-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded text-xs font-bold border border-slate-800 transition-colors";
+                    button.innerText = char;
+
+                    if (guessedLetters.has(char)) {
+                        button.disabled = true;
+                        button.className = "p-1.5 bg-slate-950 text-slate-700 rounded text-xs font-bold border border-slate-900 cursor-not-allowed";
+                    }
+
+                    button.onclick = () => {
+                        guessedLetters.add(char);
+                        if (secretWord.includes(char)) {
+                            CoreEngine.showToast("🎯 Found Character", `Letter ${char} resides in word!`, "emerald");
+                            this.renderWordSpaces();
+                            const isWinner = secretWord.split('').every(v => guessedLetters.has(v));
+                            if (isWinner) {
+                                CoreEngine.showToast("🏆 Spelled Out!", `Word: ${secretWord}`, "emerald");
+                                CoreEngine.grantXP(40);
+                                this.lockKeyboard();
+                            }
+                        } else {
+                            wordGuessesLeft--;
+                            document.getElementById('word-guesses').innerText = wordGuessesLeft;
+                            CoreEngine.showToast("❌ Mismatch", `No character found matching ${char}`, "red");
+                            if (wordGuessesLeft <= 0) {
+                                CoreEngine.showToast("💀 Game Over", `Secret word was: ${secretWord}`, "red");
+                                this.revealFullWord();
+                                this.lockKeyboard();
+                            }
+                        }
+                        this.renderKeyboard();
+                    };
+                    container.appendChild(button);
+                });
+            },
+
+            revealFullWord() {
+                secretWord.split('').forEach(char => guessedLetters.add(char));
+                this.renderWordSpaces();
+            },
+
+            lockKeyboard() {
+                Array.from(document.getElementById('word-virtual-keyboard').children).forEach(btn => {
+                    btn.disabled = true;
+                    btn.className = "p-1.5 bg-slate-950 text-slate-700 rounded text-xs font-bold border border-slate-900 cursor-not-allowed";
+                });
+            }
+        };
+
+        // ==========================================
+        // MODULE 8: GAME - PIXEL FLIGHT (FLAPPY BIRD)
+        // ==========================================
+        let flappyCanvas = null, flappyCtx = null;
+        let flappyBirdY = 200, flappyVelocity = 0, flappyGravity = 0.4, flappyJumpForce = -6.5;
+        let flappyScore = 0, flappyHighScore = 0, flappyPipes = [], flappyActive = false;
+
+        const PixelFlightGame = {
+            initFlappy() {
+                flappyCanvas = document.getElementById('flappy-canvas');
+                flappyCtx = flappyCanvas.getContext('2d');
+                
+                flappyBirdY = 200;
+                flappyVelocity = 0;
+                flappyScore = 0;
+                flappyPipes = [];
+                flappyActive = false;
+
+                document.getElementById('flappy-score').innerText = flappyScore;
+                
+                // Setup overlays
+                document.getElementById('flappy-overlay').classList.remove('hidden');
+                document.getElementById('flappy-overlay-title').innerText = "Ready to Fly?";
+                document.getElementById('flappy-overlay-desc').innerText = "Tap screen, click, or press Spacebar to jump and dodge columns!";
+                document.getElementById('flappy-start-btn').innerText = "Launch Avatar Flight";
+
+                // Keyboard Space jump bind
+                window.removeEventListener('keydown', this.handleFlappyKeys);
+                window.addEventListener('keydown', (e) => this.handleFlappyKeys(e));
+
+                this.drawFlappyStatic();
+            },
+
+            handleFlappyKeys(e) {
+                if (e.code === "Space") {
+                    e.preventDefault();
+                    this.handleFlappyTap();
+                }
+            },
+
+            handleFlappyTap() {
+                if (!flappyActive) return;
+                flappyVelocity = flappyJumpForce;
+            },
+
+            startFlappyGame() {
+                document.getElementById('flappy-overlay').classList.add('hidden');
+                flappyBirdY = 180;
+                flappyVelocity = 0;
+                flappyPipes = [
+                    { x: 400, top: 120, bottom: 250, passed: false },
+                    { x: 580, top: 80, bottom: 210, passed: false }
+                ];
+                flappyScore = 0;
+                flappyActive = true;
+                document.getElementById('flappy-score').innerText = flappyScore;
+
+                if (window.flappyLoopId) cancelAnimationFrame(window.flappyLoopId);
+                this.runFlappyLoop();
+            },
+
+            runFlappyLoop() {
+                if (!flappyActive) return;
+
+                // physics
+                flappyVelocity += flappyGravity;
+                flappyBirdY += flappyVelocity;
+
+                // draw background sky
+                flappyCtx.fillStyle = '#0f172a';
+                flappyCtx.fillRect(0, 0, flappyCanvas.width, flappyCanvas.height);
+
+                // draw obstacles / pipes
+                flappyCtx.fillStyle = '#10b981';
+                flappyPipes.forEach(pipe => {
+                    pipe.x -= 2; // move left
+                    // Top Column
+                    flappyCtx.fillRect(pipe.x, 0, 45, pipe.top);
+                    // Bottom Column
+                    flappyCtx.fillRect(pipe.x, pipe.bottom, 45, flappyCanvas.height - pipe.bottom);
+
+                    // Collision detection
+                    if (pipe.x < 112 && pipe.x + 45 > 88) {
+                        if (flappyBirdY - 10 < pipe.top || flappyBirdY + 10 > pipe.bottom) {
+                            this.endFlappyGame();
+                        }
+                    }
+
+                    // Increment score check
+                    if (!pipe.passed && pipe.x < 80) {
+                        pipe.passed = true;
+                        flappyScore++;
+                        document.getElementById('flappy-score').innerText = flappyScore;
+                        CoreEngine.showToast("⭐ Obstacle Passed", "+1 Score", "sky");
+                    }
+                });
+
+                // Clean obsolete pipes and add new ones
+                if (flappyPipes.length > 0 && flappyPipes[0].x < -50) {
+                    flappyPipes.shift();
+                    const gap = 130; // gap size
+                    const top = Math.floor(Math.random() * (flappyCanvas.height - gap - 100)) + 40;
+                    flappyPipes.push({
+                        x: 400,
+                        top: top,
+                        bottom: top + gap,
+                        passed: false
+                    });
+                }
+
+                // Floor & Roof Collision bounds
+                if (flappyBirdY < 0 || flappyBirdY > flappyCanvas.height) {
+                    this.endFlappyGame();
+                }
+
+                // Draw player selected avatar
+                flappyCtx.font = "24px Segoe UI";
+                flappyCtx.textAlign = "center";
+                flappyCtx.textBaseline = "middle";
+                flappyCtx.fillText(profile.avatar, 100, flappyBirdY);
+
+                window.flappyLoopId = requestAnimationFrame(() => this.runFlappyLoop());
+            },
+
+            drawFlappyStatic() {
+                flappyCtx.fillStyle = '#0f172a';
+                flappyCtx.fillRect(0, 0, flappyCanvas.width, flappyCanvas.height);
+                flappyCtx.font = "32px Segoe UI";
+                flappyCtx.textBaseline = "middle";
+                flappyCtx.textAlign = "center";
+                flappyCtx.fillText(profile.avatar, 200, 200);
+            },
+
+            endFlappyGame() {
+                flappyActive = false;
+                if (window.flappyLoopId) cancelAnimationFrame(window.flappyLoopId);
+
+                if (flappyScore > flappyHighScore) {
+                    flappyHighScore = flappyScore;
+                    document.getElementById('flappy-highscore').innerText = flappyHighScore;
+                }
+
+                // Show Game Over Overlay
+                document.getElementById('flappy-overlay').classList.remove('hidden');
+                document.getElementById('flappy-overlay-title').innerText = "Avatar Crashed!";
+                document.getElementById('flappy-overlay-desc').innerText = `You scored ${flappyScore} points. Don't give up!`;
+                document.getElementById('flappy-start-btn').innerText = "Try Flying Again";
+
+                CoreEngine.grantXP(Math.floor(flappyScore * 3));
+            }
+        };
+
+        // --- BIND LOCAL MODULE FUNCTIONS TO GLOBAL WINDOW OBJECTS FOR SANDBOX COMPLIANCY ---
+        window.CoreEngine = CoreEngine;
+        window.MemoryMatchGame = MemoryMatchGame;
+        window.MathQuestGame = MathQuestGame;
+        window.ArtStudioGame = ArtStudioGame;
+        window.TicTacToeGame = TicTacToeGame;
+        window.RetroSnakeGame = RetroSnakeGame;
+        window.WordBuilderGame = WordBuilderGame;
+        window.PixelFlightGame = PixelFlightGame;
+
+        // Initialize Engine
+        CoreEngine.init();
+        
+        window.onload = () => {
+            lucide.createIcons();
+            CoreEngine.selectAvatar('👾');
+        };
+    </script>
+</body>
+</html>
